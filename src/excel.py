@@ -4,7 +4,7 @@ import random
 from openpyxl import load_workbook
 from message import fun
 from task1 import Task1
-from task2 import Task2
+from taskn import TaskN
 
 hr_sheet_name = 'HR'
 
@@ -12,6 +12,7 @@ hr_sheet_name = 'HR'
 class ExcelProcessor:
     def __init__(self, app, terv, full, year, month, month_number):
         self.terv_workbook = load_workbook(filename=terv)
+        self.terv_workbook_data_only = load_workbook(filename=terv, data_only=True)
         self.full_workbook = load_workbook(filename=full)
         self.full = full
         self.terv = terv
@@ -19,7 +20,6 @@ class ExcelProcessor:
         self.year = year
         self.month = month
         self.month_number = month_number
-        self.hr_month_cell = None
         self.cells_promoted_for_coloring = dict()
         self.SMALL_LINE = "-------------------"
         self.SMALL_ARROW = "---------->"
@@ -27,6 +27,7 @@ class ExcelProcessor:
         self.TASK1_END = "------------ TASK 1 - 100% Színezés - Befejezve ------------"
         self.TASKN = "------------ TASK {} - {} ------------"
         self.TASKN_END = "------------ TASK {} - {} - Befejezve ------------"
+        self.header_month_column_name = str(self.year) + '_' + str(self.month_number)
         cut_year = year[2:]
         full_workbook_referred_sheet_names = list(filter(lambda sheet_name: cut_year in sheet_name and month in sheet_name,
                                                     self.full_workbook.get_sheet_names()))
@@ -39,9 +40,10 @@ class ExcelProcessor:
             return
         try:
             self.task1(full_workbook_referred_sheet_names[0])
-            self.task2()
+            self.taskn()
         except Exception as e:
-            logging.error("Probléma merült fel, a végrehajtást megszakítom.", e)
+            logging.error("Probléma merült fel, a végrehajtást megszakítom.")
+            logging.exception(e)
             return
 
     def task1(self, full_workbook_sheet_name):
@@ -55,8 +57,8 @@ class ExcelProcessor:
         self.save()
         logging.info(self.TASK1_END + random.choice(fun))
 
-    def task2(self):
-        Task2(self)
+    def taskn(self):
+        TaskN(self)
 
     def save(self):
         logging.info(self.SMALL_LINE + self.SMALL_LINE)

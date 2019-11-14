@@ -19,7 +19,7 @@ class App(QWidget):
         self.title = 'Vax'
         self.left = 300
         self.top = 300
-        self.width = 550
+        self.width = 650
         self.height = 400
         default_full_label = config['sources']['full'] if config['sources']['full'] else no_file_selected
         default_terv_label = config['sources']['terv'] if config['sources']['terv'] else no_file_selected

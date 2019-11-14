@@ -9,7 +9,7 @@ class QTextEditLogger(logging.Handler):
         self.widget = QtWidgets.QTextEdit(parent)
         self.widget.setReadOnly(True)
         self.widget.move(20, 190)
-        self.widget.setMinimumWidth(510)
+        self.widget.setMinimumWidth(610)
 
     def emit(self, record):
         msg = self.format(record)
