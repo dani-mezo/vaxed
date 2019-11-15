@@ -1,7 +1,7 @@
 import logging
 import random
 
-from message import fun
+from message import fun, sad
 from worksheet_utils import WorksheetUtils
 
 
@@ -18,10 +18,7 @@ class TaskN:
             self.process(full_column_name, self.column_map[full_column_name], i)
 
     def process(self, full_column_name, terv_worksheet_name, i):
-        for j in range(10):
-            logging.info('->')
-            if j == 4:
-                logging.info('->                             TASK ' + str(i))
+        self.excel.log_block('TASK ' + str(i))
         logging.info(self.excel.TASKN.format(i, full_column_name))
         logging.info("Forrás fül: '" + self.excel.full_workbook_sheet_name + "'")
         logging.info("Forrás oszlop: '" + full_column_name + "'")
@@ -36,6 +33,7 @@ class TaskN:
 
     def use_case(self, header_month_cell, terv_worksheet, header_month_cell_full, terv_worksheet_name):
         cells_to_process = []
+        cells_to_warning_process = []
         for row in self.excel.full_sheet.iter_rows():
             if 'neve' in row[0].value:
                 continue
@@ -61,12 +59,25 @@ class TaskN:
             logging.info("Terv tábla - natív érték: '" + str(found_cells_with_value[0].value) + "'")
             logging.info("Terv tábla - feloldott érték: '" + str(value_to_verify_against) + "'")
             if str(value_to_verify) != str(value_to_verify_against):
-                raise Exception("Nem egyezik meg a két összevetett érték.\nFül: " + terv_worksheet_name
-                                + "\nNév: " + target_name + "\nFULL érték: " + str(value_to_verify) + "\nTerv érték: " +
-                                str(value_to_verify_against))
-            logging.info("Az értékek egyeznek!")
-            logging.info("Cella '" + str(found_cells_with_value[0].coordinate) + "' eltárolása későbbi feldolgozásra...")
-            cells_to_process.append(found_cells_with_value[0])
+                logging.error("Nem egyezik meg a két összevetett érték. " + random.choice(sad))
+                logging.error("FULL oszlop: " + header_month_cell_full.value)
+                logging.error("Cél fül: " + terv_worksheet_name)
+                logging.error("Név: " + target_name)
+                logging.error("FULL érték: " + str(value_to_verify))
+                logging.error("Terv érték: " + str(value_to_verify_against))
+                logging.error("Figyelmeztető (sárga) színezésre eltárolom a cellát: " + row[header_month_cell_full.column - 1].coordinate)
+                cells_to_warning_process.append(row[header_month_cell_full.column - 1])
+            else:
+                logging.info("Az értékek egyeznek!")
+                logging.info("Cella '" + str(found_cells_with_value[0].coordinate) + "' eltárolása későbbi feldolgozásra...")
+                cells_to_process.append(found_cells_with_value[0])
+        if len(cells_to_warning_process) > 0:
+            logging.error("Akadtak cellák amiknek az értékük nem stimmelt! " + random.choice(sad))
+            logging.error("A következő cellák sárga színezése következik a FULL táblában: "
+                          + str(list(map(lambda cell: cell.coordinate, cells_to_warning_process))))
+            for cell in cells_to_warning_process:
+                self.excel.error_cells.append(cell)
+                WorksheetUtils.color_cell(cell, 'FFFF00')
         return cells_to_process
 
     def process_use_case_result(self, workbook, result_cells, terv_worksheet_name, current_sheet, i):

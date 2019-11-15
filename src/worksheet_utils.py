@@ -78,7 +78,7 @@ class WorksheetUtils:
         left_resolved = WorksheetUtils.resolve_reference(workbook, left_multiplication, current_sheet)
         right_resolved = WorksheetUtils.resolve_reference(workbook, right_multiplication, current_sheet)
         try:
-            return round(int(left_resolved) * int(right_resolved))
+            return round(float(left_resolved) * float(right_resolved))
         except:
             return reference
 
@@ -102,7 +102,7 @@ class WorksheetUtils:
         left_minus_resolved = WorksheetUtils.resolve_reference(workbook, left_minus, current_sheet)
         right_minus_resolved = WorksheetUtils.resolve_reference(workbook, right_minus, current_sheet)
         try:
-            return int(left_minus_resolved) - int(right_minus_resolved)
+            return round(float(left_minus_resolved) - float(right_minus_resolved))
         except:
             return reference
 
@@ -137,7 +137,7 @@ class WorksheetUtils:
     def not_none_not_null_not_reference(workbook, value, current_sheet):
         resolved_value = WorksheetUtils.resolve_reference(workbook, value, current_sheet)
         try:
-            return int(resolved_value) != 0
+            return round(float(resolved_value)) != 0
         except:
             return False
 
@@ -158,7 +158,21 @@ class WorksheetUtils:
 
     @staticmethod
     def simple_resolve_formale_in_sheet(worksheet, value):
+        try:
+            return int(value)
+        except:
+            pass
+        try:
+            return float(value)
+        except:
+            pass
+        if isinstance(value, str) and not '*' in value and '=' in value:
+            return WorksheetUtils.simple_resolve_formale_in_sheet(worksheet, worksheet[value[1:]].value)
         if '*' in value:
             left, right = value.split('*')
-            return int(left) * int(right)
-        return worksheet[value[1:]].value
+            resolved_left = WorksheetUtils.simple_resolve_formale_in_sheet(worksheet, left)
+            resolved_right = WorksheetUtils.simple_resolve_formale_in_sheet(worksheet, right)
+            try:
+                return round(float(resolved_left) * float(resolved_right))
+            except:
+                return value
