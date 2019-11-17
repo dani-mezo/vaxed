@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QLabel, QPushButton, QComboBox, QFileDialog, QWidget
 
 from logger import QTextEditLogger
 from message import welcome, comment, fun
-from src.excel import ExcelProcessor
+from excel import ExcelProcessor
 
 no_file_selected = 'Nincs fájl kiválasztva.'
 
@@ -21,8 +21,14 @@ class App(QWidget):
         self.top = 300
         self.width = 650
         self.height = 400
-        default_full_label = config['sources']['full'] if config['sources']['full'] else no_file_selected
-        default_terv_label = config['sources']['terv'] if config['sources']['terv'] else no_file_selected
+        try:
+            default_full_label = config['sources']['full']
+        except:
+            default_full_label = no_file_selected
+        try:
+            default_terv_label = config['sources']['terv']
+        except:
+            default_terv_label = no_file_selected
         self.full_label = QLabel(default_full_label, self)
         self.terv_label = QLabel(default_terv_label, self)
         self.init_ui()
@@ -32,14 +38,12 @@ class App(QWidget):
     def init_ui(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
-
         self.full_button()
         self.terv_button()
         self.month_dropdown()
         self.year_dropdown()
         self.match_button()
         self.logger()
-
         self.show()
 
     def full_button(self):
@@ -114,13 +118,17 @@ class App(QWidget):
 
     @pyqtSlot()
     def match(self):
-        if not os.path.isfile(self.terv_label.text()) or not os.path.isfile(self.full_label.text()):
+        if not os.path.isfile(self.terv_label.text()):
+            logging.info("Nem sikerült betölteni a terv fájlt: '" + self.terv_label.text() + "'")
+            return
+        if not os.path.isfile(self.full_label.text()):
+            logging.info("Nem sikerült betölteni a FULL fájlt: '" + self.terv_label.text() + "'")
             return
         logging.info('Excel táblák összevetése...')
         ExcelProcessor(self, self.terv_label.text(), self.full_label.text(), self.selected_year, self.selected_month, self.months.index(self.selected_month) + 1)
 
     def write_out(self):
-        f = open('../config.yml', 'w')
+        f = open('config.yml', 'w')
         f.write("sources:\n")
         f.write("  full: " + self.full_label.text() + "\n")
         f.write("  terv: " + self.terv_label.text() + "\n")

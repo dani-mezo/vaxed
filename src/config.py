@@ -9,8 +9,17 @@ class Config:
 
     def fetch_config(self):
         script_dir = os.path.dirname(__file__)
-        with open(os.path.join(script_dir, "../config.yml"), 'r') as stream:
-            try:
-                self.config = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                print(exc)
+        try:
+            with open(os.path.join(script_dir, "config.yml"), 'r') as stream:
+                try:
+                    self.config = yaml.safe_load(stream)
+                except yaml.YAMLError as exc:
+                    print(exc)
+        except:
+            with(open(os.path.join(script_dir, "config.yml"), 'w+')) as file:
+                file.write('sources:\n')
+                file.write('  full: "Nincs fájl kiválasztva."\n')
+                file.write('  terv: "Nincs fájl kiválasztva."')
+
+
+

@@ -1,5 +1,8 @@
 backup/*
 resource/*
-config.yml
+src/config.yml
 venv/*
 .idea/*
+build/*
+dist/*
+src/__pycache__/*

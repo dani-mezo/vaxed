@@ -1,7 +1,5 @@
 import logging
 
-from openpyxl.styles import PatternFill
-
 from worksheet_utils import WorksheetUtils
 
 
