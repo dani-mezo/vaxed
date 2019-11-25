@@ -1,3 +1,5 @@
+import logging
+
 welcome = [
     "Kellemes napot Viktória hercegnő!",
     "Szia Borsó!",
@@ -108,3 +110,25 @@ fun = ["😍", "😙", "😀", "😆", "😄", "😂", "😊", "🙂", "😁", "
 
 sad = ["😓", "😥", "😩", "😔", "😞", "😖", "😨", "😰", "😣", "😢", "😭", "😂", "😲", "😱", "😫", "😠", "😡", "😤", "😪",
        "💥", "💥", "💢", "❗", "❓",  "🐫", "🐑", "🐍", "🐛", "🐝", "🐜", "🐀", "🐉", "🐂", "🐷", "🐽", "🐮", "🐗"]
+
+SMALL_LINE = "-------------------"
+DOUBLE_LINE = SMALL_LINE + SMALL_LINE
+LONG_LINE = SMALL_LINE + SMALL_LINE + SMALL_LINE + SMALL_LINE
+TASK = "------------ TASK {} - {} ------------"
+TASK_END = "------------ TASK {} - {} - Befejezve ------------"
+SMALL_ARROW = "---------->"
+TASK1 = "------------------ TASK 1 - 100% Színezés ------------------"
+TASK1_END = "------------ TASK 1 - 100% Színezés - Befejezve ------------"
+
+class Message:
+    @staticmethod
+    def log_block(text, text2):
+        for j in range(10):
+            logging.info('->')
+            if j == 4:
+                if len(text) > 20:
+                    logging.info('->  ' + text)
+                else:
+                    logging.info('->                             ' + text)
+            if j == 5 and text2 is not None:
+                logging.info('->    ' + text2)

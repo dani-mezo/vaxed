@@ -3,24 +3,36 @@ import os
 import random
 from datetime import datetime
 
+from PyQt5 import QtCore
 from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import QLabel, QPushButton, QComboBox, QFileDialog, QWidget
+from PyQt5.QtWidgets import QLabel, QPushButton, QComboBox, QFileDialog, QWidget, QMainWindow
 
 from logger import QTextEditLogger
-from message import welcome, comment, fun
+from message import welcome, comment, fun, sad, LONG_LINE, Message
 from excel import ExcelProcessor
+from time_utils import Time
 
 no_file_selected = 'Nincs fájl kiválasztva.'
 
 
-class App(QWidget):
+class App(QMainWindow):
     def __init__(self, config):
+        super(App, self).__init__()
         super().__init__()
         self.title = 'Vax'
         self.left = 300
         self.top = 300
-        self.width = 650
-        self.height = 400
+        self.width = 700
+        self.height = 600
+        self.logTextBox = None
+        try:
+            self.mean = str(config['measurements']['mean'])
+        except:
+            self.mean = '0'
+        try:
+            self.sample_size = str(config['measurements']['sample-size'])
+        except:
+            self.sample_size = '0'
         try:
             default_full_label = config['sources']['full']
         except:
@@ -78,13 +90,13 @@ class App(QWidget):
         comboBox.activated[str].connect(self.select_month)
 
     def year_dropdown(self):
-        comboBox = QComboBox(self)
+        self.year_combo = QComboBox(self)
         years = [str(datetime.today().year), str(datetime.today().year - 1)]
-        comboBox.addItems(years)
+        self.year_combo.addItems(years)
         self.selected_year = years[0]
-        comboBox.setCurrentIndex(0)
-        comboBox.move(110, 100)
-        comboBox.activated[str].connect(self.select_year)
+        self.year_combo.setCurrentIndex(0)
+        self.year_combo.move(110, 100)
+        self.year_combo.activated[str].connect(self.select_year)
 
     def select_month(self, month):
         self.selected_month = month
@@ -125,17 +137,58 @@ class App(QWidget):
             logging.info("Nem sikerült betölteni a FULL fájlt: '" + self.terv_label.text() + "'")
             return
         logging.info('Excel táblák összevetése...')
-        ExcelProcessor(self, self.terv_label.text(), self.full_label.text(), self.selected_year, self.selected_month, self.months.index(self.selected_month) + 1)
+        started_at = datetime.now()
+        excel_processor = ExcelProcessor(self, self.terv_label.text(), self.full_label.text(), self.selected_year, self.selected_month,
+                       self.months.index(self.selected_month) + 1, self.mean)
+        finished_at = datetime.now()
+        self.took_seconds = str((finished_at - started_at).total_seconds())
+        logging.info('Ennyi másodpercig tartott a teljes feldolgozás: ' + str(format(float(self.took_seconds), '.2f')))
+        self.calculate_new_mean()
+        self.write_out()
+        self.app_log_outro(excel_processor.error_cells)
+
+    def resizeEvent(self, event):
+        if self.logTextBox:
+            self.logTextBox.resize(event.size().width(), event.size().height())
+        self.full_label.adjustSize()
+        self.terv_label.adjustSize()
+        self.year_combo.adjustSize()
+        return super(App, self).resizeEvent(event)
 
     def write_out(self):
         f = open('config.yml', 'w')
         f.write("sources:\n")
         f.write("  full: " + self.full_label.text() + "\n")
         f.write("  terv: " + self.terv_label.text() + "\n")
+        f.write("measurements:\n")
+        f.write("  sample-size: " + self.sample_size + "\n")
+        f.write("  mean: " + self.mean + "\n")
         f.close()
 
     def logger(self):
-        logTextBox = QTextEditLogger(self)
-        logTextBox.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-        logging.getLogger().addHandler(logTextBox)
+        self.logTextBox = QTextEditLogger(self, self.width, self.height)
+        self.logTextBox.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        logging.getLogger().addHandler(self.logTextBox)
         logging.getLogger().setLevel(logging.DEBUG)
+
+    def calculate_new_mean(self):
+        try:
+            self.mean = str((float(self.mean) * float(self.sample_size) + float(self.took_seconds)) /
+                            (float(self.sample_size) + 1))
+            self.sample_size = str(float(self.sample_size) + 1)
+        except:
+            return
+
+    def app_log_outro(self, failed_verification_cells):
+        logging.info(LONG_LINE)
+        logging.info(LONG_LINE)
+        logging.info(LONG_LINE)
+        if len(failed_verification_cells) == 0:
+            Message.log_block(
+                random.choice(fun) + random.choice(fun) + ' A teljes végrehajtással sikeresen végeztünk!' + random.choice(fun)
+                + random.choice(fun), "Ennyi másodpercig tartott: " + Time.format_seconds(self.took_seconds))
+        else:
+            Message.log_block(random.choice(sad) + ' Végeztünk mindennel, de voltak FULL-beli cellák amik nem egyeztek: '
+                           + str(failed_verification_cells), "Ennyi másodpercig tartott: " + Time.format_seconds(self.took_seconds))
+        logging.info(LONG_LINE)
+        logging.info(LONG_LINE)

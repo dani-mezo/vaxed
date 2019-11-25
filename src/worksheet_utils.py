@@ -1,4 +1,10 @@
+import logging
+import math
+
 from openpyxl.styles import PatternFill
+
+YELLOW = 'FFFF00'
+PINK = 'FF99FF'
 
 
 class WorksheetUtils:
@@ -37,10 +43,6 @@ class WorksheetUtils:
             found_cells.append(row[column_cell.column - 1])
         return found_cells
 
-    # =HR!BD2
-    # =KEREKÍTÉS('PRogramban elsz bér (54)'!AZ15*$AU$1;0)
-    # =KEREKÍTÉS(HR!BF15*'Bruttó bér'!AX15;0)
-    # =HA(HR!BF9="";0;'Bruttó bér'!$N9)
     @staticmethod
     def resolve_reference(workbook, reference, current_sheet):
         if not WorksheetUtils.is_reference(reference):
@@ -53,6 +55,8 @@ class WorksheetUtils:
             return WorksheetUtils.resolve_round_reference(workbook, reference, current_sheet)
         if '-' in reference:
             return WorksheetUtils.resolve_minus(workbook, reference, current_sheet)
+        if '*' in reference:
+            return WorksheetUtils.resolve_multiplication(workbook, reference, current_sheet)
         return WorksheetUtils.resolve_simple_reference_recursively(workbook, reference, current_sheet)
 
     @staticmethod
@@ -84,12 +88,43 @@ class WorksheetUtils:
 
     @staticmethod
     def resolve_simple_reference_recursively(workbook, reference, current_sheet):
+        if WorksheetUtils.simple_local_reference(reference):
+            try:
+                return WorksheetUtils.resolve_reference(workbook, current_sheet[reference[1:]].value, current_sheet)
+            except:
+                return reference
         if WorksheetUtils.simple_reference(reference):
             no_overhead_reference = WorksheetUtils.remove_overhead_from_reference(reference)
-            sheet, cell = no_overhead_reference.split('!')
-            return WorksheetUtils.resolve_reference(workbook, workbook.get_sheet_by_name(sheet)[cell].value, current_sheet)
+            try:
+                sheet, cell = no_overhead_reference.split('!')
+                sheet_referred_cell = workbook.get_sheet_by_name(sheet)[cell]
+            except:
+                logging.warning('Nem sikerült feloldani a referenciát, a fül vagy a cella nem létezik: ' + reference)
+                return reference
+            return WorksheetUtils.resolve_reference(workbook, sheet_referred_cell.value, current_sheet)
         try:
             return WorksheetUtils.resolve_reference(workbook, current_sheet[reference].value, current_sheet)
+        except:
+            return reference
+
+    @staticmethod
+    def resolve_multiplication(workbook, reference, current_sheet):
+        if '=' in reference:
+            no_overhead = reference[1:]
+        else:
+            no_overhead = reference
+        try:
+            left, right = no_overhead.split('*')
+        except:
+            return reference
+        resolved_left = WorksheetUtils.resolve_reference(workbook, left, current_sheet)
+        resolved_right = WorksheetUtils.resolve_reference(workbook, right, current_sheet)
+        try:
+            multiplied = float(resolved_left) * float(resolved_right)
+            if (float(multiplied) % 1) >= 0.499:
+                return math.ceil(multiplied)
+            else:
+                return round(multiplied)
         except:
             return reference
 
@@ -110,7 +145,8 @@ class WorksheetUtils:
     def simple_reference(reference):
         if not reference or not isinstance(reference, str):
             return False
-        return not "#REF" in reference and "!" in reference and ('(54)' in reference or not '(' in reference)
+        return not "#REF" in reference and "!" in reference and reference[-1] != '!' and ('(54)' in reference or not '(' in reference) \
+               and not '!!' in reference and len(reference) < 30 and not 'ÚJ' in reference
 
     @staticmethod
     def is_reference(reference):
@@ -176,3 +212,9 @@ class WorksheetUtils:
                 return round(float(resolved_left) * float(resolved_right))
             except:
                 return value
+
+    @staticmethod
+    def simple_local_reference(reference):
+        if not reference or not isinstance(reference, str):
+            return False
+        return not "#REF" in reference and not '!' in reference and "=" in reference and not '*' in reference and len(reference) < 8
