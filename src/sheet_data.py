@@ -34,6 +34,7 @@ class SheetData:
                 else:
                     self.cells[cell.coordinate] = WorksheetUtils.resolve_reference(self.workbook, cell.value, self.sheet)
 
+
     def generate_name_row_cache(self):
         cache = {}
         for coordinate, value in self.cells.items():

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from message import DOUBLE_LINE, fun, TASK_END, TASK, Message, LONG_LINE, sad
 from sheet_data import SheetData
 from time_utils import Time
-from worksheet_utils import WorksheetUtils, YELLOW, PINK
+from worksheet_utils import WorksheetUtils, LIGHT_RED, PINK
 
 
 class Task:
@@ -48,7 +48,10 @@ class Task:
     def verify_user(self, name, target_value):
         logging.info(DOUBLE_LINE)
         logging.info('Célszemély: ' + name)
-        cached_rows = self.terv_data.cached_name_rows[name]
+        try:
+            cached_rows = self.terv_data.cached_name_rows[name]
+        except:
+            raise Exception("Nem találtam egyetlen cellát sem a felhasználóhoz '" + name + "'.")
         if cached_rows:
             logging.info('Megtalált sorok: ' + str(cached_rows))
             verify_coordinates = list(map(lambda row: self.terv_month_column + row, cached_rows))
@@ -66,7 +69,7 @@ class Task:
                         return
             raise Exception("Nem találtam cellát ami megfelelne a full táblabeli '" + str(target_value)
                             + "' értékhez a felhasználóhoz '" + name + "'. Vizsgált cellák: " + str(verify_coordinates))
-        raise Exception("Nem találtam egyáltalán cellát a felhasználóhoz '" + name)
+        raise Exception("Nem találtam egyetlen cellát sem a felhasználóhoz '" + name + "'.")
 
     @staticmethod
     def log_init(full_task_value, terv_task_value):
@@ -78,7 +81,7 @@ class Task:
     def finish(self):
         for coordinate in self.failed_verification_cells:
             full_cell_failed_verification = self.full_sheet[coordinate]
-            WorksheetUtils.color_cell(full_cell_failed_verification, YELLOW)
+            WorksheetUtils.color_cell(full_cell_failed_verification, LIGHT_RED)
         for coordinate, value in self.verified_cells.items():
             verified_cell = self.terv_sheet[coordinate]
             verified_cell.value = value

@@ -10,7 +10,6 @@ class Config:
     def fetch_config(self):
         script_dir = os.path.dirname(__file__)
         try:
-            #with open(os.path.join(script_dir, "config.yml"), 'r') as stream:
             with open("config.yml", 'r') as stream:
                 try:
                     self.config = yaml.safe_load(stream)

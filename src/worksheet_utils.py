@@ -3,45 +3,11 @@ import math
 
 from openpyxl.styles import PatternFill
 
-YELLOW = 'FFFF00'
+LIGHT_RED = 'FF726F'
 PINK = 'FF99FF'
 
 
 class WorksheetUtils:
-    @staticmethod
-    def find_first_cell_by_value(workbook, worksheet, target_value):
-        for row in worksheet.iter_rows():
-            for cell in row:
-                if WorksheetUtils.is_reference(cell.value) and WorksheetUtils.resolve_reference(workbook, cell.value, worksheet) == target_value:
-                    return cell
-                if cell.value == target_value:
-                    return cell
-        raise Exception("A '" + worksheet.title + "' táblában nem találtam cellát ezzel az értékkel: '" + target_value + "'")
-
-    @staticmethod
-    def find_cells_by_value_coordinates(workbook, worksheet, column_coordinate_value, row_coordinate_value):
-        resolved_column_coordinate = WorksheetUtils.resolve_reference(workbook, column_coordinate_value, worksheet)
-        resolved_row_coordinate = WorksheetUtils.resolve_reference(workbook, row_coordinate_value, worksheet)
-        column_cell = None
-        rows = []
-        for row in worksheet.iter_rows():
-            for cell in row:
-                resolved_cell_value = WorksheetUtils.resolve_reference(workbook, cell.value, worksheet)
-                if resolved_cell_value == resolved_column_coordinate:
-                    column_cell = cell
-                    continue
-                if resolved_cell_value == resolved_row_coordinate:
-                    if len(rows) > 0 and row[0].coordinate != rows[-1][0].coordinate or len(rows) == 0:
-                        rows.append(row)
-                        continue
-        if column_cell is None:
-            raise Exception("Nem találtam meg az oszlopot: '" + column_coordinate_value + "'")
-        if column_cell is None:
-            raise Exception("Nem találtam sorokat: '" + row_coordinate_value + "'")
-        found_cells = []
-        for row in rows:
-            found_cells.append(row[column_cell.column - 1])
-        return found_cells
 
     @staticmethod
     def resolve_reference(workbook, reference, current_sheet):
@@ -82,7 +48,7 @@ class WorksheetUtils:
         left_resolved = WorksheetUtils.resolve_reference(workbook, left_multiplication, current_sheet)
         right_resolved = WorksheetUtils.resolve_reference(workbook, right_multiplication, current_sheet)
         try:
-            return round(float(left_resolved) * float(right_resolved))
+            return WorksheetUtils.ceil_up(left_resolved, right_resolved)
         except:
             return reference
 
@@ -97,11 +63,12 @@ class WorksheetUtils:
             no_overhead_reference = WorksheetUtils.remove_overhead_from_reference(reference)
             try:
                 sheet, cell = no_overhead_reference.split('!')
-                sheet_referred_cell = workbook.get_sheet_by_name(sheet)[cell]
+                new_current_sheet = workbook.get_sheet_by_name(sheet)
+                sheet_referred_cell = new_current_sheet[cell]
             except:
                 logging.warning('Nem sikerült feloldani a referenciát, a fül vagy a cella nem létezik: ' + reference)
                 return reference
-            return WorksheetUtils.resolve_reference(workbook, sheet_referred_cell.value, current_sheet)
+            return WorksheetUtils.resolve_reference(workbook, sheet_referred_cell.value, new_current_sheet)
         try:
             return WorksheetUtils.resolve_reference(workbook, current_sheet[reference].value, current_sheet)
         except:
@@ -120,11 +87,7 @@ class WorksheetUtils:
         resolved_left = WorksheetUtils.resolve_reference(workbook, left, current_sheet)
         resolved_right = WorksheetUtils.resolve_reference(workbook, right, current_sheet)
         try:
-            multiplied = float(resolved_left) * float(resolved_right)
-            if (float(multiplied) % 1) >= 0.499:
-                return math.ceil(multiplied)
-            else:
-                return round(multiplied)
+            return WorksheetUtils.ceil_up(resolved_left, resolved_right)
         except:
             return reference
 
@@ -146,7 +109,7 @@ class WorksheetUtils:
         if not reference or not isinstance(reference, str):
             return False
         return not "#REF" in reference and "!" in reference and reference[-1] != '!' and ('(54)' in reference or not '(' in reference) \
-               and not '!!' in reference and len(reference) < 30 and not 'ÚJ' in reference
+               and not '!!' in reference and len(reference) < 40 and not 'ÚJ' in reference
 
     @staticmethod
     def is_reference(reference):
@@ -166,18 +129,6 @@ class WorksheetUtils:
         return no_overhead
 
     @staticmethod
-    def only_cells_with_value(workbook, cells, current_sheet):
-        return list(filter(lambda cell: WorksheetUtils.not_none_not_null_not_reference(workbook, cell.value, current_sheet), cells))
-
-    @staticmethod
-    def not_none_not_null_not_reference(workbook, value, current_sheet):
-        resolved_value = WorksheetUtils.resolve_reference(workbook, value, current_sheet)
-        try:
-            return round(float(resolved_value)) != 0
-        except:
-            return False
-
-    @staticmethod
     def color_cell(cell, color):
         if not cell or not color:
             raise Exception("Nem sikerült színezni, nem létezik a cella vagy hiányzik a szín.")
@@ -185,36 +136,15 @@ class WorksheetUtils:
         cell.fill = color_fill
 
     @staticmethod
-    def simple_resolve_in_sheet(worksheet, value):
-        if not value or not isinstance(value, str):
-            return value
-        if '=' in value:
-            return WorksheetUtils.simple_resolve_formale_in_sheet(worksheet, value)
-        return value
-
-    @staticmethod
-    def simple_resolve_formale_in_sheet(worksheet, value):
-        try:
-            return int(value)
-        except:
-            pass
-        try:
-            return float(value)
-        except:
-            pass
-        if isinstance(value, str) and not '*' in value and '=' in value:
-            return WorksheetUtils.simple_resolve_formale_in_sheet(worksheet, worksheet[value[1:]].value)
-        if '*' in value:
-            left, right = value.split('*')
-            resolved_left = WorksheetUtils.simple_resolve_formale_in_sheet(worksheet, left)
-            resolved_right = WorksheetUtils.simple_resolve_formale_in_sheet(worksheet, right)
-            try:
-                return round(float(resolved_left) * float(resolved_right))
-            except:
-                return value
-
-    @staticmethod
     def simple_local_reference(reference):
         if not reference or not isinstance(reference, str):
             return False
         return not "#REF" in reference and not '!' in reference and "=" in reference and not '*' in reference and len(reference) < 8
+
+    @staticmethod
+    def ceil_up(left, right):
+        multiplied = float(left) * float(right)
+        if (float(multiplied) % 1) >= 0.499:
+            return math.ceil(multiplied)
+        else:
+            return round(multiplied)
