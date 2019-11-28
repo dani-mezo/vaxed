@@ -12,6 +12,7 @@ class ExcelProcessor:
     def __init__(self, app, terv, full, year, month, month_number, mean_duration):
         logging.info('Megkezdjük a feldolgozást. Ez eltarthat egy darabig, türelem! ... ' + random.choice(fun))
         logging.info('Átlagosan ennyi másodpercig tart: ' + str(format(float(mean_duration), '.2f')))
+        Task.i = 0
         self.terv_workbook = load_workbook(filename=terv)
         self.full_workbook = load_workbook(filename=full)
         self.full = full
@@ -39,9 +40,11 @@ class ExcelProcessor:
             full_sheet = self.full_workbook.get_sheet_by_name(full_sheet_name)
             full_sheet_data = SheetData(self.full_workbook, full_sheet, 'FULL - ' + full_sheet_name, False)
             self.do_tasks(full_sheet_data, full_sheet)
+            self.close()
         except Exception as e:
             logging.error("Probléma merült fel, a végrehajtást megszakítom.")
             logging.exception(e)
+            self.close()
             return
 
     def do_tasks(self, full_sheet_data, full_sheet):
@@ -64,6 +67,12 @@ class ExcelProcessor:
         logging.info('Mentés: ' + self.terv)
         self.terv_workbook.save(self.terv)
         logging.info(LONG_LINE)
+
+    def close(self):
+        if self.terv_workbook is not None:
+            self.terv_workbook.close()
+        if self.full_workbook is not None:
+            self.full_workbook.close()
 
 
 

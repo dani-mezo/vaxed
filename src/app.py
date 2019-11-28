@@ -25,6 +25,7 @@ class App(QMainWindow):
         self.width = 700
         self.height = 600
         self.logTextBox = None
+        self.excel_processor = None
         try:
             self.mean = str(config['measurements']['mean'])
         except:
@@ -138,14 +139,15 @@ class App(QMainWindow):
             return
         logging.info('Excel táblák összevetése...')
         started_at = datetime.now()
-        excel_processor = ExcelProcessor(self, self.terv_label.text(), self.full_label.text(), self.selected_year, self.selected_month,
+        self.excel_processor = ExcelProcessor(self, self.terv_label.text(), self.full_label.text(), self.selected_year, self.selected_month,
                        self.months.index(self.selected_month) + 1, self.mean)
         finished_at = datetime.now()
         self.took_seconds = str((finished_at - started_at).total_seconds())
         logging.info('Ennyi másodpercig tartott a teljes feldolgozás: ' + str(format(float(self.took_seconds), '.2f')))
         self.calculate_new_mean()
         self.write_out()
-        self.app_log_outro(excel_processor.error_cells)
+        self.app_log_outro(self.excel_processor.error_cells)
+        self.excel_processor = None
 
     def resizeEvent(self, event):
         if self.logTextBox:
@@ -192,3 +194,7 @@ class App(QMainWindow):
                            + str(failed_verification_cells), "Ennyi másodpercig tartott: " + Time.format_seconds(self.took_seconds))
         logging.info(LONG_LINE)
         logging.info(LONG_LINE)
+
+    def closeEvent(self, event):
+        if self.excel_processor is not None:
+            self.excel_processor.close()
