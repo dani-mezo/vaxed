@@ -3,15 +3,15 @@ import math
 
 from openpyxl.styles import PatternFill
 
-LIGHT_RED = 'FF726F'
-PINK = 'FF99FF'
+LIGHT_RED = 'ff726f'
+PINK = 'ff99ff'
 
 
 class WorksheetUtils:
 
     @staticmethod
     def resolve_reference(workbook, reference, current_sheet):
-        if not WorksheetUtils.is_reference(reference):
+        if not WorksheetUtils.is_meaningful(reference):
             return reference
         if 'SUMIF' in reference or 'DATEDIF' in reference:
             return reference
@@ -66,7 +66,7 @@ class WorksheetUtils:
                 new_current_sheet = workbook.get_sheet_by_name(sheet)
                 sheet_referred_cell = new_current_sheet[cell]
             except:
-                logging.warning('Nem sikerült feloldani a referenciát, a fül vagy a cella nem létezik: ' + reference)
+                logging.debug('Nem sikerült feloldani a referenciát, a fül vagy a cella nem létezik: ' + reference)
                 return reference
             return WorksheetUtils.resolve_reference(workbook, sheet_referred_cell.value, new_current_sheet)
         try:
@@ -112,7 +112,7 @@ class WorksheetUtils:
                and not '!!' in reference and len(reference) < 40 and not 'ÚJ' in reference
 
     @staticmethod
-    def is_reference(reference):
+    def is_meaningful(reference):
         if not reference or not isinstance(reference, str):
             return False
         return True
@@ -120,7 +120,7 @@ class WorksheetUtils:
     @staticmethod
     def remove_overhead_from_reference(reference):
         no_overhead = reference.replace('\'', '').replace('$', '').replace('"', '').replace('\\',  '').replace('(', '').replace(')', '')
-        if 'PRogramban' in reference and '54' in reference:
+        if 'Programban' in reference and '54' in reference:
             no_overhead = no_overhead[:no_overhead.find('54')] + '(54)' + no_overhead[no_overhead.find('54') + 2:]
         if reference.startswith('=+'):
             return no_overhead[2:]

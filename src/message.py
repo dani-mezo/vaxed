@@ -122,13 +122,17 @@ TASK1_END = "------------ TASK 1 - 100% Színezés - Befejezve ------------"
 
 class Message:
     @staticmethod
-    def log_block(text, text2):
+    def log_block(text, text2, log_method):
+        log_method(LONG_LINE)
+        log_method(LONG_LINE)
         for j in range(10):
-            logging.info('->')
+            log_method('->')
             if j == 4:
                 if len(text) > 20:
-                    logging.info('->  ' + text)
+                    log_method('->  ' + text)
                 else:
                     logging.info('->                             ' + text)
             if j == 5 and text2 is not None:
-                logging.info('->    ' + text2)
+                log_method('->    ' + text2)
+        log_method(LONG_LINE)
+        log_method(LONG_LINE)

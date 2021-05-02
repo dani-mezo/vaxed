@@ -9,7 +9,7 @@ from task import Task
 
 
 class ExcelProcessor:
-    def __init__(self, app, terv, full, year, month, month_number, mean_duration):
+    def __init__(self, app, terv, full, year, month, month_number, mean_duration, target_color, tasks):
         logging.info('Megkezdjük a feldolgozást. Ez eltarthat egy darabig, türelem! ... ' + random.choice(fun))
         logging.info('Átlagosan ennyi másodpercig tart: ' + str(format(float(mean_duration), '.2f')))
         Task.i = 0
@@ -21,6 +21,8 @@ class ExcelProcessor:
         self.year = year
         self.month = month
         self.month_number = month_number
+        self.target_color = target_color
+        self.tasks = tasks
         self.cells_promoted_for_coloring = dict()
         self.month_number = str(self.month_number) if int(self.month_number) >= 10 else '0' + str(self.month_number)
         self.header_month_column_name = str(self.year) + '_' + str(self.month_number)
@@ -28,7 +30,7 @@ class ExcelProcessor:
         cut_year = year[2:]
         full_workbook_referred_sheet_names = list(filter(lambda sheet_name: cut_year in sheet_name and month in sheet_name,
                                                     self.full_workbook.get_sheet_names()))
-        logging.info('Betöltöttem a FULL táblából a következő füleket: ' + str(full_workbook_referred_sheet_names))
+        logging.debug('Betöltöttem a FULL táblából a következő füleket: ' + str(full_workbook_referred_sheet_names))
         if len(full_workbook_referred_sheet_names) > 1:
             logging.error('Valami nem stimmel, több fül is megfelelt a kiválasztásnak: ' + str(full_workbook_referred_sheet_names))
             return
@@ -48,16 +50,14 @@ class ExcelProcessor:
             return
 
     def do_tasks(self, full_sheet_data, full_sheet):
-        task_map = {
-            "Munkavállaló,\nmegbízottszemély neve/\nbeosztása": "HR",
-            "Bruttó bér/ illetmény/ megbízási díj/ céljuttatás": "Bruttó bér",
-            "Bruttó bér projektre elszámolva": "PRogramban elsz bér (54)",
-            "Járulékok és adók": "Kapcsolódó járulék (56)"
-        }
-        for full_task_name, terv_task_name in task_map.items():
+        for i, task in enumerate(self.tasks, start=1):
+            if task is None:
+                continue
+            full_task_name = next(iter(self.tasks[i - 1].keys()))
+            terv_task_name = next(iter(self.tasks[i - 1].values()))
             just_verify_presence = True if 'HR' in terv_task_name else False
             task = Task(self.terv_workbook, full_sheet_data, full_sheet, full_task_name, terv_task_name,
-                        self.header_month_column_name, just_verify_presence)
+                        self.header_month_column_name, just_verify_presence, self.target_color, i)
             self.error_cells.extend(task.failed_verification_cells)
             self.save()
 

@@ -7,7 +7,7 @@ from worksheet_utils import WorksheetUtils
 class SheetData:
 
     def __init__(self, workbook, sheet, name_to_log, skip_resolvation):
-        logging.info('Feloldom a képleteket a fülben: ' + name_to_log)
+        logging.debug('Feloldom a képleteket a fülben: ' + name_to_log)
         self.started_at = datetime.now()
         self.skip_resolvation = skip_resolvation
         self.workbook = workbook
@@ -23,7 +23,7 @@ class SheetData:
             pass
         self.finished_at  = datetime.now()
         self.took_seconds = (self.finished_at - self.started_at).total_seconds()
-        logging.info('A fül teljes képletfeloldása ennyi másodpercig tartott: ' + str(self.took_seconds))
+        logging.debug('A fül teljes képletfeloldása ennyi másodpercig tartott: ' + str(self.took_seconds))
 
 
     def calculate_values(self):
@@ -32,7 +32,13 @@ class SheetData:
                 if self.skip_resolvation:
                     self.cells[cell.coordinate] = cell.value
                 else:
+                    if cell.value is not None and isinstance(cell.value, str) and cell.value.startswith("="):
+                        logging.debug('Elkezdem feloldani a ' + str(cell.coordinate) + ' cella képletét: ' + str(cell.value))
+                    if cell.coordinate == "AU3":
+                        pass
                     self.cells[cell.coordinate] = WorksheetUtils.resolve_reference(self.workbook, cell.value, self.sheet)
+                    if cell.value is not None and isinstance(cell.value, str) and cell.value.startswith("="):
+                        logging.debug('Feloldottam a ' + str(cell.coordinate) + ' cella képletét. Eredmény: ' + str(self.cells[cell.coordinate]))
 
 
     def generate_name_row_cache(self):

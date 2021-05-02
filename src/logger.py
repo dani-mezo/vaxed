@@ -5,11 +5,11 @@ from PyQt5.QtWidgets import QSizePolicy
 
 
 class QTextEditLogger(logging.Handler):
-    def __init__(self, parent, width, height):
+    def __init__(self, parent, width, height, y):
         super().__init__()
         self.widget = QtWidgets.QTextEdit(parent)
         self.widget.setReadOnly(True)
-        self.widget.move(20, 190)
+        self.widget.move(20, y)
         self.resize(width, height)
         size_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.widget.setSizePolicy(size_policy)
@@ -20,4 +20,7 @@ class QTextEditLogger(logging.Handler):
         QtWidgets.QApplication.processEvents()
 
     def resize(self, width, height):
-        self.widget.resize(width - 40, height - 210)
+        self.widget.resize(width - 40, height - 230)
+
+    def clear(self):
+        self.widget.clear()
